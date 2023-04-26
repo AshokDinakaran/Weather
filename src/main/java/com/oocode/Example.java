@@ -7,20 +7,21 @@ import java.io.IOException;
 import java.time.DayOfWeek;
 
 public class Example {
+    static MetOfficeForecasterClientAdapter adapter = new MetOfficeForecasterClientAdapter();
+    static ForecasterCache cache = new ForecasterCache(adapter);
+
     public static void main(String[] args) throws IOException {
-        if (args.length != 2) {
+        if (args.length % 2 != 0) {
             throw new RuntimeException("Must specify Day and Place");
         }
-        forecast(args[0], args[1]);
+
+        for (int i = 0; i < args.length / 2; i++) {
+            forecast(args[i * 2], args[i * 2 + 1]);
+        }
+
     }
 
     private static void forecast(String day, String place) throws IOException {
-        int dayNumber = DayOfWeek.valueOf(day.toUpperCase()).getValue();
-        LocatorClient.Location location = new LocatorClient().locationOf(place);
-        MetOfficeForecasterClient forecasterClient = new MetOfficeForecasterClient();
-        MetOfficeForecasterClient.Forecast forecast =
-                forecasterClient.forecast(dayNumber, location.latitude, location.longitude);
-        System.out.printf("forecaster: %s day=%s min=%s max=%s description=%s%n",
-                place, day, forecast.minTemp, forecast.maxTemp, forecast.description);
+        System.out.printf(cache.Forecast(day, place));
     }
 }
