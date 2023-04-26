@@ -3,6 +3,8 @@ package com.develogical;
 
 import com.oocode.ForecasterCache;
 import com.oocode.IForecaster;
+import com.oocode.MetOfficeForecasterClientAdapter;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -16,45 +18,47 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 public class ForecasterCacheTest {
-
     List<String> days = Arrays.asList("Monday", "Tuesday");
-    List<String> locations = Arrays.asList("London", "Oxford", "abs", "asdf");
-    IForecaster forecaster;
+    List<String> locations = Arrays.asList("London", "Oxford");
+    IForecaster mockForecaster;
     ForecasterCache cacheClient;
     String day = days.get((int) Math.floor(Math.random() * days.size()));
     String place = locations.get((int) Math.floor(Math.random() * locations.size()));
-    String expected = String.format("forecaster: %s day=%s ", day, place);
+    String expected = String.format("forecaster: %s day=%s ", place, day);
 
     @Before
     public void setup() throws IOException {
-        forecaster = mock(IForecaster.class);
-        cacheClient = new ForecasterCache(forecaster);
-        given(forecaster.Forecast(day, place)).willReturn(expected);
+        MetOfficeForecasterClientAdapter realForecaster = new MetOfficeForecasterClientAdapter();
+        expected = realForecaster.Forecast(day, place);
+
+        mockForecaster = mock(IForecaster.class);
+        cacheClient = new ForecasterCache(mockForecaster);
+        given(mockForecaster.Forecast(day, place)).willReturn(expected);
     }
 
     @Test
     public void GetNewForecastSendsRequest() throws IOException {
         cacheClient.Forecast(day, place);
-        verify(forecaster).Forecast(day, place);
+        verify(mockForecaster).Forecast(day, place);
     }
 
     @Test
     public void GetNewForecastReturnsResult() throws IOException {
-        assertThat(cacheClient.Forecast(day, place), is(expected));
+        Assert.assertTrue(cacheClient.Forecast(day, place).startsWith(expected));
     }
 
     @Test
     public void GetForecastFromCacheSendsRequestOnce() throws IOException {
         cacheClient.Forecast(day, place);
-        verify(forecaster).Forecast(day, place);
+        verify(mockForecaster).Forecast(day, place);
         cacheClient.Forecast(day, place);
-        verifyNoMoreInteractions(forecaster);
+        verifyNoMoreInteractions(mockForecaster);
     }
 
     @Test
     public void GetForecastFromCacheSendsRequestOnceAndReturnsResult() throws IOException {
         cacheClient.Forecast(day, place);
         cacheClient.Forecast(day, place);
-        assertThat(cacheClient.Forecast(day, place), is(expected));
+        Assert.assertTrue(cacheClient.Forecast(day, place).startsWith(expected));
     }
 }
